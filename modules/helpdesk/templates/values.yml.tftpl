@@ -1,0 +1,120 @@
+backend:
+%{ if backend_image_tag != "" ~}
+  image:
+    tag: "${backend_image_tag}"
+%{ else ~}
+  image: {}
+%{ endif ~}
+  persistence:
+    storageClass: ${storage_class_name}
+  serviceAccount:
+    irsaRoleArn: ${helpdesk_backend_irsa_role_arn}
+%{ if length(backend_extra_env) > 0 ~}
+  extraEnv:
+%{ for e in backend_extra_env ~}
+    - name: ${e.name}
+      value: ${jsonencode(e.value)}
+%{ endfor ~}
+%{ endif ~}
+config:
+  authFrontendBaseUrl: https://${helpdesk_dns}
+  authAllowedOrigins: https://${helpdesk_dns}
+  infraRegion: ${infra_region}
+  mongoDbDatabaseName: duplo-ai-helpdesk
+  aiStudioIsMasterDisabled: true
+%{ if auth_super_users != "" ~}
+  authSuperUsers: ${auth_super_users}
+%{ endif ~}
+frontend:
+%{ if frontend_image_tag != "" ~}
+  image:
+    tag: "${frontend_image_tag}"
+%{ else ~}
+  image: {}
+%{ endif ~}
+xterm:
+  hostname: https://${helpdesk_xterm_dns}
+ingress:
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: ${certificate_arn}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+%{ if alb_sg_id != "" ~}
+    alb.ingress.kubernetes.io/security-groups: ${alb_sg_id}
+%{ endif ~}
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/subnets: ${public_subnet_ids}
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=180
+    external-dns.alpha.kubernetes.io/hostname: ${helpdesk_dns},${helpdesk_xterm_dns}
+  className: alb
+  enabled: true
+mongodb:
+  auth:
+    rootUser: helpdesk
+  persistence:
+    storageClass: gp3
+  useStatefulSet: true
+  # Sub-chart mongodump backup disabled: the parent chart's backup (top-level
+  # backup.enabled) renders a PVC with the same name (<release>-mongodb-mongodump)
+  # and the two collide on a fresh install of chart >= 0.2.19.
+  backup:
+    enabled: false
+mongodbBackup:
+  storage:
+    # gp3 is WaitForFirstConsumer, and nothing mounts this PVC until the backup
+    # CronJob's first scheduled run — it would stay Pending (and block Helm's
+    # wait) until then. ai-studio-efs binds Immediate instead.
+    storageClass: ${storage_class_name}
+secrets:
+  # OAuth client IDs. An empty string ("") disables that provider. The client
+  # secrets, jwtSharedSecret and licensingToken are passed as sensitive Helm
+  # set values and never rendered into this document.
+  googleClientId: "${google_client_id}"
+  microsoftClientId: "${microsoft_client_id}"
+  microsoftTenantId: "${microsoft_tenant_id}"
+slackBackend:
+  enabled: ${slack_backend_enabled}
+%{ if slack_backend_enabled ~}
+  image:
+    tag: "${slack_backend_image_tag}"
+  env:
+    helpdeskDefaultAgent: "${slack_helpdesk_default_agent}"
+    helpdeskDefaultWorkspace: "${slack_helpdesk_default_workspace}"
+  envFromSecret:
+    create: true
+    data:
+      DUPLO_SLACK_APP_PORTALS: ${jsonencode(slack_app_portals)}
+      helpdeskDefaultAgent: "${slack_helpdesk_default_agent}"
+      helpdeskDefaultWorkspace: "${slack_helpdesk_default_workspace}"
+    secretName: slack-managed-portals
+%{ endif ~}
+backup:
+  enabled: true
+duploAgent:
+  image: {}
+  persistence:
+    storageClass: ${storage_class_name}
+  serviceAccount:
+    irsaRoleArn: ${helpdesk_agent_irsa_role_arn}
+collector:
+  enabled: ${helpdesk_analytics_collector_enabled}
+  product:
+    instance: ${helpdesk_analytics_collector_app_instance}
+  serviceAccount:
+    create: true
+    irsaRoleArn: ${helpdesk_analytics_collector_irsa_role_arn}
+internalIngress:
+  enabled: false
+bedrockSubscription:
+  enabled: ${bedrock_subscription_enabled}
+  serviceAccount:
+    create: false
+    name: ${bedrock_service_account_name}
+helpdeskMcp:
+  enabled: ${helpdesk_mcp_enabled}
+installer:
+  rbac:
+    serviceAccountToken: ${installer_rbac_service_account_token}
+  serviceAccount:
+    irsaRoleArn: ${installer_irsa_role_arn}

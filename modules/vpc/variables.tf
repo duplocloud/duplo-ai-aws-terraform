@@ -1,0 +1,16 @@
+variable "cluster_name" {
+  description = "EKS cluster name — used for subnet tags"
+  type        = string
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  type        = string
+  default     = "10.0.0.0/16"
+  nullable    = false
+}
+
+variable "azs" {
+  description = "List of availability zones"
+  type        = list(string)
+}
