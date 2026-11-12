@@ -22,8 +22,8 @@ config:
   infraRegion: ${infra_region}
   mongoDbDatabaseName: duplo-ai-helpdesk
   aiStudioIsMasterDisabled: true
-  # Sign-in is the local admin only, who is also the one super user.
-  authSuperUsers: ${local_admin_email}
+  # The local admin plus the admin emails (auth_super_users).
+  authSuperUsers: ${jsonencode(auth_super_users)}
 frontend:
 %{ if frontend_image_tag != "" ~}
   image:

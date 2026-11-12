@@ -103,7 +103,8 @@ module "helpdesk" {
   chart_version      = try(var.helpdesk.values.chart_version, null)
   storage_class_name = try(var.helpdesk.values.storage_class_name, null)
 
-  local_admin_email = try(var.helpdesk.values.local_admin_email, null)
+  local_admin_email = try(trimspace(var.helpdesk.values.local_admin_email), "")
+  auth_super_users  = try(var.helpdesk.values.auth_super_users, null)
 
   backend_image_tag                    = try(var.helpdesk.values.backend_image_tag, null)
   frontend_image_tag                   = try(var.helpdesk.values.frontend_image_tag, null)

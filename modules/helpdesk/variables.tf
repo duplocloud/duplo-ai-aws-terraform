@@ -88,11 +88,28 @@ variable "s3_userdata_bucket_arn" {
 }
 
 # ── Authentication ────────────────────────────────────────────────────────────
+# Sign-in is the local admin only (no Google or Microsoft sign-in).
 variable "local_admin_email" {
-  description = "Email of the local admin (also the Helpdesk super user), who signs in with secrets.local_admin_password"
+  description = "Email of the local admin, who signs in with secrets.local_admin_password; always a super user"
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = can(regex("^[^@\\s,]+@[^@\\s,]+\\.[^@\\s,]+$", var.local_admin_email))
+    error_message = "local_admin_email must be an email address."
+  }
+}
+
+variable "auth_super_users" {
+  description = "Comma-separated admin emails made Helpdesk super users in addition to local_admin_email"
   type        = string
   default     = ""
   nullable    = false
+
+  validation {
+    condition     = alltrue([for e in split(",", var.auth_super_users) : can(regex("^[^@\\s,]+@[^@\\s,]+\\.[^@\\s,]+$", trimspace(e))) if trimspace(e) != ""])
+    error_message = "auth_super_users must be a comma-separated list of email addresses."
+  }
 }
 
 # ── Secrets (never rendered into the values document) ────────────────────────
@@ -102,6 +119,11 @@ variable "secrets" {
   default     = {}
   nullable    = false
   sensitive   = true
+
+  validation {
+    condition     = length(lookup(var.secrets, "local_admin_password", "")) > 0
+    error_message = "secrets.local_admin_password is required (the local admin's password)."
+  }
 }
 
 variable "jwt_shared_secret" {

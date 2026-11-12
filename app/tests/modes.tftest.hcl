@@ -171,7 +171,7 @@ run "local_login" {
     error_message = "licensing token must be passed as a sensitive value"
   }
   assert {
-    condition     = strcontains(module.helpdesk.rendered_values, "authSuperUsers: admin@example.com")
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com"
     error_message = "local admin email must be added to auth super users"
   }
   assert {
@@ -180,38 +180,57 @@ run "local_login" {
   }
 }
 
-run "ignores_a_saved_login_method" {
+run "admin_emails_are_super_users" {
   command = apply
 
   variables {
     helpdesk = {
       mode = "create"
       values = {
-        login_method      = "google"
-        google_client_id  = "gid"
-        auth_super_users  = "someone@example.com"
         local_admin_email = "admin@example.com"
+        auth_super_users  = " ops1@example.com, admin@example.com,,ops2@example.com "
       }
-    }
-    secrets = {
-      licensing_token      = "lic-token-value"
-      local_admin_password = "pw"
-      google_client_secret = "gsecret"
     }
   }
 
   assert {
-    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com"
-    error_message = "A login_method or auth_super_users saved by an older release is ignored; the local admin is the one super user."
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com,ops1@example.com,ops2@example.com"
+    error_message = "Super users are the local admin plus the admin emails, trimmed and without duplicates."
   }
   assert {
-    condition     = yamldecode(module.helpdesk.rendered_values).secrets.googleClientId == "" && !contains(module.helpdesk.sensitive_value_labels, "secrets.googleClientSecret")
-    error_message = "Google sign-in must stay off."
+    condition     = yamldecode(module.helpdesk.rendered_values).secrets.googleClientId == "" && yamldecode(module.helpdesk.rendered_values).secrets.microsoftClientId == ""
+    error_message = "Google and Microsoft sign-in must stay off."
   }
-  assert {
-    condition     = contains(module.helpdesk.sensitive_value_labels, "backend.extraEnv.Authentication__LocalAdminPassword")
-    error_message = "The local admin password must still be passed."
+}
+
+run "rejects_sso_login_method" {
+  command = plan
+
+  variables {
+    helpdesk = { mode = "create", values = { login_method = "google", google_client_id = "gid", local_admin_email = "admin@example.com" } }
   }
+
+  expect_failures = [var.helpdesk]
+}
+
+run "rejects_bad_admin_email" {
+  command = plan
+
+  variables {
+    helpdesk = { mode = "create", values = { local_admin_email = "admin@example.com", auth_super_users = "ops1@example.com,not-an-email" } }
+  }
+
+  expect_failures = [var.helpdesk]
+}
+
+run "rejects_null_admin_email" {
+  command = plan
+
+  variables {
+    helpdesk = { mode = "create", values = { local_admin_email = null } }
+  }
+
+  expect_failures = [var.helpdesk]
 }
 
 run "no_values_file" {

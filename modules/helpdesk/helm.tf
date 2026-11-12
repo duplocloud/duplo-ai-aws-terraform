@@ -1,5 +1,10 @@
 locals {
-  # Sign-in is the local admin only, who is also the one super user.
+  # Sign-in is the local admin only. Super users: the local admin plus the admin emails.
+  super_users = distinct(concat(
+    [var.local_admin_email],
+    [for e in split(",", var.auth_super_users) : trimspace(e) if trimspace(e) != ""]
+  ))
+
   # Non-secret backend environment, rendered into the values document.
   extra_env = [{ name = "Authentication__LocalAdminEmail", value = var.local_admin_email }]
 
@@ -11,7 +16,7 @@ locals {
     certificate_arn                            = var.certificate_arn
     alb_sg_id                                  = var.alb_sg_id
     public_subnet_ids                          = join(",", var.public_subnet_ids)
-    local_admin_email                          = var.local_admin_email
+    auth_super_users                           = join(",", local.super_users)
     backend_extra_env                          = local.extra_env
     slack_backend_enabled                      = var.slack_backend_enabled
     slack_backend_image_tag                    = var.slack_backend_image_tag

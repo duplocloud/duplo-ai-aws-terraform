@@ -71,8 +71,10 @@ Other inputs:
 - `state` (app root): `{ bucket, region, platform_key }`, where the platform state lives.
 - `secrets` (app root, sensitive map): `licensing_token`, `local_admin_password`; optional `slack_app_token`,
   `slack_bot_token`. Pass it as `TF_VAR_secrets` so it never lands in a file.
-- Sign-in is the local admin only (`helpdesk.values.local_admin_email` and `secrets.local_admin_password`), who is
-  also the one super user. Google and Microsoft sign-in are not offered.
+- Sign-in is the local admin only (`helpdesk.values.local_admin_email` and `secrets.local_admin_password`).
+  The local admin is a super user, along with any admin emails in `helpdesk.values.auth_super_users`
+  (comma-separated). Google and Microsoft sign-in are not offered; a saved `login_method` other than `local`
+  is rejected with a migration message.
 - `common_tags` (both roots): tags for every resource.
 
 The module variables (`modules/*/variables.tf`) are the full list of `values` each layer accepts, with
