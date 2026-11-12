@@ -22,9 +22,8 @@ config:
   infraRegion: ${infra_region}
   mongoDbDatabaseName: duplo-ai-helpdesk
   aiStudioIsMasterDisabled: true
-%{ if auth_super_users != "" ~}
-  authSuperUsers: ${auth_super_users}
-%{ endif ~}
+  # Sign-in is the local admin only, who is also the one super user.
+  authSuperUsers: ${local_admin_email}
 frontend:
 %{ if frontend_image_tag != "" ~}
   image:
@@ -67,12 +66,13 @@ mongodbBackup:
     # wait) until then. ai-studio-efs binds Immediate instead.
     storageClass: ${storage_class_name}
 secrets:
-  # OAuth client IDs. An empty string ("") disables that provider. The client
-  # secrets, jwtSharedSecret and licensingToken are passed as sensitive Helm
-  # set values and never rendered into this document.
-  googleClientId: "${google_client_id}"
-  microsoftClientId: "${microsoft_client_id}"
-  microsoftTenantId: "${microsoft_tenant_id}"
+  # Google and Microsoft sign-in are not offered: the empty client IDs keep both
+  # providers off whatever the chart defaults to. jwtSharedSecret and
+  # licensingToken are passed as sensitive Helm set values and never rendered
+  # into this document.
+  googleClientId: ""
+  microsoftClientId: ""
+  microsoftTenantId: ""
 slackBackend:
   enabled: ${slack_backend_enabled}
 %{ if slack_backend_enabled ~}

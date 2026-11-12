@@ -88,48 +88,8 @@ variable "s3_userdata_bucket_arn" {
 }
 
 # ── Authentication ────────────────────────────────────────────────────────────
-variable "login_method" {
-  description = "First-login method: local (admin email + password), google, or microsoft"
-  type        = string
-  default     = "local"
-  nullable    = false
-
-  validation {
-    condition     = contains(["local", "google", "microsoft"], var.login_method)
-    error_message = "login_method must be one of: local, google, microsoft."
-  }
-}
-
 variable "local_admin_email" {
-  description = "Admin email for local login (also added to auth super users)"
-  type        = string
-  default     = ""
-  nullable    = false
-}
-
-variable "google_client_id" {
-  description = "Google OAuth client ID (login_method = google)"
-  type        = string
-  default     = ""
-  nullable    = false
-}
-
-variable "microsoft_client_id" {
-  description = "Microsoft (Entra) OAuth client ID (login_method = microsoft)"
-  type        = string
-  default     = ""
-  nullable    = false
-}
-
-variable "microsoft_tenant_id" {
-  description = "Microsoft (Entra) tenant ID, e.g. \"common\" or a GUID (login_method = microsoft)"
-  type        = string
-  default     = ""
-  nullable    = false
-}
-
-variable "auth_super_users" {
-  description = "Comma-separated list of super user emails"
+  description = "Email of the local admin (also the Helpdesk super user), who signs in with secrets.local_admin_password"
   type        = string
   default     = ""
   nullable    = false
@@ -137,7 +97,7 @@ variable "auth_super_users" {
 
 # ── Secrets (never rendered into the values document) ────────────────────────
 variable "secrets" {
-  description = "User-entered secrets: licensing_token, local_admin_password, google_client_secret, microsoft_client_secret, slack_app_token, slack_bot_token"
+  description = "User-entered secrets: licensing_token, local_admin_password, slack_app_token, slack_bot_token"
   type        = map(string)
   default     = {}
   nullable    = false

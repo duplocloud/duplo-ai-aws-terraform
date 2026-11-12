@@ -78,7 +78,6 @@ variables {
   helpdesk = {
     mode = "create"
     values = {
-      login_method      = "local"
       local_admin_email = "admin@example.com"
     }
   }
@@ -181,30 +180,37 @@ run "local_login" {
   }
 }
 
-run "google_login" {
+run "ignores_a_saved_login_method" {
   command = apply
 
   variables {
     helpdesk = {
       mode = "create"
       values = {
-        login_method     = "google"
-        google_client_id = "gid"
+        login_method      = "google"
+        google_client_id  = "gid"
+        auth_super_users  = "someone@example.com"
+        local_admin_email = "admin@example.com"
       }
     }
     secrets = {
       licensing_token      = "lic-token-value"
+      local_admin_password = "pw"
       google_client_secret = "gsecret"
     }
   }
 
   assert {
-    condition     = !contains(module.helpdesk.values_preview_keys, "backend.extraEnv.Authentication__LocalAdminEmail")
-    error_message = "google login must not set local admin env"
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com"
+    error_message = "A login_method or auth_super_users saved by an older release is ignored; the local admin is the one super user."
   }
   assert {
-    condition     = contains(module.helpdesk.sensitive_value_labels, "secrets.googleClientSecret") && !contains(module.helpdesk.sensitive_value_labels, "backend.extraEnv.Authentication__LocalAdminPassword")
-    error_message = "google login must pass only the google client secret"
+    condition     = yamldecode(module.helpdesk.rendered_values).secrets.googleClientId == "" && !contains(module.helpdesk.sensitive_value_labels, "secrets.googleClientSecret")
+    error_message = "Google sign-in must stay off."
+  }
+  assert {
+    condition     = contains(module.helpdesk.sensitive_value_labels, "backend.extraEnv.Authentication__LocalAdminPassword")
+    error_message = "The local admin password must still be passed."
   }
 }
 
@@ -284,11 +290,11 @@ run "generated_and_secret_outputs" {
   }
 }
 
-run "rejects_unknown_login_method" {
+run "rejects_missing_admin_email" {
   command = plan
 
   variables {
-    helpdesk = { mode = "create", values = { login_method = "saml" } }
+    helpdesk = { mode = "create", values = {} }
   }
 
   expect_failures = [var.helpdesk]
@@ -301,7 +307,7 @@ run "local_login_requires_password" {
     secrets = { licensing_token = "lic-token-value" }
   }
 
-  expect_failures = [var.helpdesk]
+  expect_failures = [var.secrets]
 }
 
 run "adopted_bucket_without_arn" {
