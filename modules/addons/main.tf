@@ -182,7 +182,12 @@ resource "aws_eks_addon" "ebs_csi" {
 }
 
 # ── Node Role Permissions (S3 + Bedrock + AssumeRole for all pods) ────────────
+# Only on a node role this repo created (cluster mode `create`). An adopted cluster's node role belongs to its
+# owner and is never modified: the Helpdesk pods that need AWS access get it from their own IRSA roles (see
+# modules/helpdesk), which carry the same bucket, Bedrock and sts:AssumeRole rights.
 resource "aws_iam_policy" "node_permissions" {
+  count = var.attach_node_permissions ? 1 : 0
+
   name = "${var.cluster_name}-node-permissions-policy"
   policy = jsonencode({
     Version = "2012-10-17"
@@ -244,6 +249,19 @@ resource "aws_iam_policy" "node_permissions" {
 }
 
 resource "aws_iam_role_policy_attachment" "node_permissions" {
+  count = var.attach_node_permissions ? 1 : 0
+
   role       = var.node_role_name
-  policy_arn = aws_iam_policy.node_permissions.arn
+  policy_arn = aws_iam_policy.node_permissions[0].arn
+}
+
+# Releases up to v0.1.1 created these without count.
+moved {
+  from = aws_iam_policy.node_permissions
+  to   = aws_iam_policy.node_permissions[0]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.node_permissions
+  to   = aws_iam_role_policy_attachment.node_permissions[0]
 }

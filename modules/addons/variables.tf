@@ -28,6 +28,13 @@ variable "node_role_name" {
   type        = string
 }
 
+variable "attach_node_permissions" {
+  description = "Attach the node permissions policy to node_role_name. Only for a node role this repo created: an adopted cluster's node role is never modified."
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
 variable "external_dns_enabled" {
   description = "Install external-dns (only useful when a Route53 zone is managed)"
   type        = bool

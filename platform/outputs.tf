@@ -42,6 +42,11 @@ output "node_role_name" {
   value = local.node_role_name
 }
 
+output "node_role_managed" {
+  description = "Whether this repo created the node role (cluster mode create). The app root only changes a managed node role."
+  value       = local.create_cluster
+}
+
 output "efs_id" {
   value = local.efs_id
 }

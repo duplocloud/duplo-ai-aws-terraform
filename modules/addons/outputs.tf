@@ -27,3 +27,8 @@ output "storage_class_name" {
   description = "Kubernetes StorageClass name for EFS"
   value       = kubernetes_storage_class_v1.efs.metadata[0].name
 }
+
+output "node_permissions_attached" {
+  description = "Whether the node permissions policy is attached to the node role (never on an adopted cluster's node role)"
+  value       = length(aws_iam_role_policy_attachment.node_permissions) == 1
+}

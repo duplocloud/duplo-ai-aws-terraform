@@ -33,6 +33,12 @@ locals {
 
   create_addons = var.addons.mode == "create"
 
+  # The node permissions policy goes only on a node role the platform root created; an adopted cluster's node
+  # role is never modified. A platform state written before node_role_managed existed (v0.1.1 and earlier) falls
+  # back to the name the eks module gives the role it creates.
+  node_role_managed = try(tobool(local.platform_outputs.node_role_managed),
+  local.platform.node_role_name == "${local.platform.cluster_name}-node-role")
+
   # dns mode is a platform output; only route53 mode runs external-dns.
   # Certificate validation is not awaited here: EKS tokens last ~15 minutes, so
   # the backend waits for the certificate to be ISSUED (ACM API) before planning app.
@@ -62,14 +68,15 @@ module "addons" {
   source = "../modules/addons"
   count  = local.create_addons ? 1 : 0
 
-  cluster_name           = local.platform.cluster_name
-  oidc_provider_arn      = local.platform.oidc_provider_arn
-  oidc_provider_url      = local.platform.oidc_provider_url
-  vpc_id                 = local.platform.vpc_id
-  efs_id                 = local.platform.efs_id
-  node_role_name         = local.platform.node_role_name
-  s3_bucket_arn          = local.bucket_arn
-  s3_userdata_bucket_arn = local.userdata_bucket_arn
+  cluster_name            = local.platform.cluster_name
+  oidc_provider_arn       = local.platform.oidc_provider_arn
+  oidc_provider_url       = local.platform.oidc_provider_url
+  vpc_id                  = local.platform.vpc_id
+  efs_id                  = local.platform.efs_id
+  node_role_name          = local.platform.node_role_name
+  attach_node_permissions = local.node_role_managed
+  s3_bucket_arn           = local.bucket_arn
+  s3_userdata_bucket_arn  = local.userdata_bucket_arn
 
   external_dns_enabled         = local.external_dns_active
   external_dns_domain_filter   = try(var.addons.values.external_dns_domain_filter, null)

@@ -99,6 +99,10 @@ run "greenfield" {
     error_message = "dns_mode output should echo the dns layer mode"
   }
   assert {
+    condition     = output.node_role_managed == true
+    error_message = "a created cluster's node role is managed"
+  }
+  assert {
     condition     = output.alb_sg_id == "sg-alb"
     error_message = "alb_sg_id should come from the eks module when created"
   }
@@ -178,6 +182,10 @@ run "existing_cluster" {
   assert {
     condition     = output.alb_sg_id == "sg-alb-existing"
     error_message = "alb_sg_id should come from provides for an existing cluster"
+  }
+  assert {
+    condition     = output.node_role_managed == false
+    error_message = "an adopted cluster's node role is not managed (the app root must not modify it)"
   }
 }
 
