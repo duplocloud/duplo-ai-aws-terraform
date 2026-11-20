@@ -124,6 +124,17 @@ Destroy in the reverse order: `app`, then `platform`. Adopted resources are left
 - The JWT shared secret and the MongoDB root password are generated (`random_password`) and kept in state.
   Protect the state bucket accordingly (encryption, versioning, restricted access).
 - Provider versions and checksums are pinned by the committed `.terraform.lock.hcl` in each root.
+- **Adopted resources are never modified.** With `cluster.mode = "existing"`, the `addons` layer does not
+  attach anything to the cluster's node role (the platform output `node_role_managed` is `false`). The Helpdesk
+  pods get their AWS access from their own IAM roles for service accounts (`modules/helpdesk`): the backend
+  (bucket access and `sts:AssumeRole` into the cloud provider roles it is given), the agent (Bedrock) and the
+  Bedrock subscription job.
+- On a cluster this repo creates, only the service accounts in `cluster.values.node_role_web_identity_subjects`
+  (default `system:serviceaccount:helpdesk:*`, the Helpdesk namespace) can assume the node role through the
+  cluster's OIDC provider; `[]` removes that trust. If you install Helpdesk into another namespace, list it here.
+- The cluster API has a public endpoint (OpenTofu runs the app root's Helm and Kubernetes providers from
+  outside the VPC). Restrict it with `cluster.values.endpoint_public_access_cidrs`, including the addresses
+  OpenTofu runs from, or turn it off with `endpoint_public_access = false` when OpenTofu runs inside the VPC.
 
 ## Tests
 
