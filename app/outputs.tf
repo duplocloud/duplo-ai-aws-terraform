@@ -10,17 +10,17 @@ locals {
 }
 
 output "load_balancer_hostname" {
-  description = "ALB hostname serving Helpdesk; empty until the load balancer is provisioned"
+  description = "ALB hostname serving DuploCloud AI; empty until the load balancer is provisioned"
   value       = local.lb_hostname
 }
 
 output "helpdesk_url" {
-  description = "Helpdesk URL"
+  description = "DuploCloud AI URL"
   value       = "https://${var.deployment.host}"
 }
 
 output "dns_records" {
-  description = "CNAME records to create for the Helpdesk hosts; empty when Route53 manages DNS"
+  description = "CNAME records to create for the DuploCloud AI hosts; empty when Route53 manages DNS"
   value       = local.dns_records
 }
 
