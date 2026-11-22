@@ -47,12 +47,12 @@ variable "storage_class_name" {
 }
 
 variable "helpdesk_dns" {
-  description = "Helpdesk DNS hostname (e.g. helpdesk.example.com)"
+  description = "DuploCloud AI DNS hostname (e.g. duplo-ai.example.com)"
   type        = string
 }
 
 variable "helpdesk_xterm_dns" {
-  description = "Helpdesk xterm DNS hostname"
+  description = "DuploCloud AI xterm DNS hostname"
   type        = string
 }
 

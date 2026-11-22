@@ -9,7 +9,7 @@ output "private_subnet_ids" {
 }
 
 output "public_subnet_ids" {
-  description = "Public subnet IDs (the Helpdesk application load balancer)"
+  description = "Public subnet IDs (the DuploCloud AI application load balancer)"
   value       = local.public_subnet_ids
 }
 
@@ -54,7 +54,7 @@ output "node_role_name" {
 }
 
 output "efs_id" {
-  description = "EFS file system ID for Helpdesk file storage"
+  description = "EFS file system ID for DuploCloud AI file storage"
   value       = local.efs_id
 }
 
@@ -79,7 +79,7 @@ output "userdata_bucket_name" {
 }
 
 output "certificate_arn" {
-  description = "ACM certificate ARN for the Helpdesk hosts (pending validation in external mode until the records exist)"
+  description = "ACM certificate ARN for the DuploCloud AI hosts (pending validation in external mode until the records exist)"
   value       = local.certificate_arn
 }
 
