@@ -1,9 +1,9 @@
-# terraform-aws-helpdesk
+# duplo-ai-aws-terraform
 
-[DuploCloud](https://duplocloud.com) Helpdesk is an AI-powered helpdesk: AI agents work support tickets alongside
+DuploCloud AI is [DuploCloud](https://duplocloud.com)'s AI-powered helpdesk: AI agents work support tickets alongside
 your team, with a web interface and optional Slack integration. This repository is the OpenTofu / Terraform code
-that deploys Helpdesk into your own AWS account: a VPC, an EKS cluster, EFS and S3 storage, an HTTPS certificate
-with DNS, the cluster add-ons, and the Helpdesk Helm release.
+that deploys DuploCloud AI into your own AWS account: a VPC, an EKS cluster, EFS and S3 storage, an HTTPS certificate
+with DNS, the cluster add-ons, and the DuploCloud AI Helm release.
 
 Every layer can be **created** or can **adopt** something you already have (an existing VPC, cluster,
 file system, bucket or certificate). Adopted resources are read, never modified. So the same code serves a
@@ -24,7 +24,7 @@ modules/
   s3/         buckets layer      app-data and user-data buckets, encrypted, no public access
   dns/        dns layer          ACM certificate, optional Route 53 records
   addons/     addons layer       AWS Load Balancer Controller, EFS CSI driver, external-dns, storage classes
-  helpdesk/   helpdesk layer     namespace, IAM roles for service accounts, the Helpdesk Helm release
+  helpdesk/   helpdesk layer     namespace, IAM roles for service accounts, the DuploCloud AI Helm release
 ```
 
 There are two roots because the `app` root configures the Helm and Kubernetes providers from a cluster
@@ -37,14 +37,14 @@ from the platform state with `terraform_remote_state`.
 - AWS credentials with administrator access in the target account. For an adopted cluster, the credentials
   must have cluster-admin on it.
 - An S3 bucket for state.
-- A DuploCloud Helpdesk license token (passed as `secrets.licensing_token`).
-- Amazon Bedrock model access in the deployment region for the Anthropic Claude models Helpdesk uses.
+- A DuploCloud AI license token (passed as `secrets.licensing_token`).
+- Amazon Bedrock model access in the deployment region for the Anthropic Claude models DuploCloud AI uses.
 
 ## Helm chart
 
-The `app` root installs the DuploCloud Helpdesk Helm chart, `oci://quay.io/duplocloud/helpdesk`, at the version
-set by `helpdesk.values.chart_version`. The chart's source is at
-[github.com/duplocloud/helm](https://github.com/duplocloud/helm).
+The `app` root installs the DuploCloud AI Helm chart, which is still published as `oci://quay.io/duplocloud/helpdesk`,
+at the version set by `helpdesk.values.chart_version`. The chart's source is at
+[github.com/duplocloud/duplo-ai-helm](https://github.com/duplocloud/duplo-ai-helm).
 
 ## Inputs
 
@@ -75,7 +75,7 @@ instantiated and the root uses `provides` instead.
 Other inputs:
 
 - `deployment` (both roots): `{ name, region, host, xterm_host, account_id }`. `host` and `xterm_host` are
-  the Helpdesk hostnames.
+  the DuploCloud AI hostnames.
 - `state` (app root): `{ bucket, region, platform_key }`, where the platform state lives.
 - `secrets` (app root, sensitive map): `licensing_token`, and depending on the login method
   `local_admin_password`, `google_client_secret` or `microsoft_client_secret`; optional `slack_app_token`,

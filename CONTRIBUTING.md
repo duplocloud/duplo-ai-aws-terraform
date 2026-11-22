@@ -13,15 +13,15 @@ CI runs the same commands with OpenTofu 1.13.2 and TFLint 0.65.0 on every pull r
 
 ## Reference implementation
 
-This repository is the reference implementation for DuploCloud Helpdesk on OpenTofu / Terraform.
-[`terraform-google-helpdesk`](https://github.com/duplocloud/terraform-google-helpdesk) and
-[`terraform-azure-helpdesk`](https://github.com/duplocloud/terraform-azure-helpdesk) follow the same layout,
+This repository is the reference implementation for DuploCloud AI on OpenTofu / Terraform.
+[`duplo-ai-gcp-terraform`](https://github.com/duplocloud/duplo-ai-gcp-terraform) and
+[`duplo-ai-azure-terraform`](https://github.com/duplocloud/duplo-ai-azure-terraform) follow the same layout,
 inputs and output names, and each documents in its own CONTRIBUTING.md where it differs. A change to the
 rules below usually needs a matching change in those repositories.
 
 ## Compatibility rules
 
-Tooling that deploys Helpdesk, including DuploCloud's managed deployment tooling, pins tagged releases of this
+Tooling that deploys DuploCloud AI, including DuploCloud's managed deployment tooling, pins tagged releases of this
 repository, reads the module variables and runs the two roots. Keep these properties so that existing
 deployments and that tooling keep working:
 
