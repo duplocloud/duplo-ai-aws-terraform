@@ -6,9 +6,10 @@
 tofu fmt -recursive
 cd platform && tofu init -backend=false && tofu validate && tofu test
 cd ../app   && tofu init -backend=false && tofu validate && tofu test
+cd .. && tflint --init && tflint --recursive --config "$PWD/.tflint.hcl"
 ```
 
-CI runs the same commands with OpenTofu 1.13.2 on every pull request.
+CI runs the same commands with OpenTofu 1.13.2 and TFLint 0.65.0 on every pull request.
 
 ## Reference implementation
 

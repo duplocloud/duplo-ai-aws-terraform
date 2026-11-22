@@ -146,7 +146,8 @@ cd platform && tofu init -backend=false && tofu test
 cd ../app   && tofu init -backend=false && tofu test
 ```
 
-The tests use mock providers and cover every layer mode; they need no AWS account.
+The tests use mock providers and cover every layer mode; they need no AWS account. CI also runs
+`tofu fmt -check` and `tflint --recursive`.
 
 ## Contributing
 
