@@ -1,15 +1,16 @@
 # terraform-aws-helpdesk
 
-OpenTofu / Terraform code that deploys [DuploCloud](https://duplocloud.com) **Helpdesk** into your own AWS
-account: a VPC, an EKS cluster, EFS and S3 storage, an HTTPS certificate with DNS, the cluster add-ons, and
-the Helpdesk Helm release.
+[DuploCloud](https://duplocloud.com) Helpdesk is an AI-powered helpdesk: AI agents work support tickets alongside
+your team, with a web interface and optional Slack integration. This repository is the OpenTofu / Terraform code
+that deploys Helpdesk into your own AWS account: a VPC, an EKS cluster, EFS and S3 storage, an HTTPS certificate
+with DNS, the cluster add-ons, and the Helpdesk Helm release.
 
 Every layer can be **created** or can **adopt** something you already have (an existing VPC, cluster,
 file system, bucket or certificate). Adopted resources are read, never modified. So the same code serves a
 greenfield account and an account with an established platform.
 
-This repository is used on its own, and it is also what the DuploCloud DevKit's Cloud Deployment agent
-runs. The agent pins a release of this repo and generates its setup wizard from these variables.
+You can use this repository on its own. DuploCloud's managed deployment tooling also uses this repository and
+pins tagged releases.
 
 ## Layout
 
@@ -36,7 +37,14 @@ from the platform state with `terraform_remote_state`.
 - AWS credentials with administrator access in the target account. For an adopted cluster, the credentials
   must have cluster-admin on it.
 - An S3 bucket for state.
-- A DuploCloud Helpdesk license token.
+- A DuploCloud Helpdesk license token (passed as `secrets.licensing_token`).
+- Amazon Bedrock model access in the deployment region for the Anthropic Claude models Helpdesk uses.
+
+## Helm chart
+
+The `app` root installs the DuploCloud Helpdesk Helm chart, `oci://quay.io/duplocloud/helpdesk`, at the version
+set by `helpdesk.values.chart_version`. The chart's source is at
+[github.com/duplocloud/helm](https://github.com/duplocloud/helm).
 
 ## Inputs
 
@@ -73,6 +81,10 @@ Other inputs:
   `local_admin_password`, `google_client_secret` or `microsoft_client_secret`; optional `slack_app_token`,
   `slack_bot_token`. Pass it as `TF_VAR_secrets` so it never lands in a file.
 - `common_tags` (both roots): tags for every resource.
+
+Every AWS resource also gets two default tags from the provider: `duplocloud:deployment = <deployment.name>`
+and `duplocloud:managed-by = cloud-deployment-agent`. The `managed-by` value is fixed and identifies resources
+created by this code, whoever runs it; it does not mean DuploCloud manages your account.
 
 The module variables (`modules/*/variables.tf`) are the full list of `values` each layer accepts, with
 descriptions and defaults.
@@ -124,6 +136,8 @@ Destroy in the reverse order: `app`, then `platform`. Adopted resources are left
 - The JWT shared secret and the MongoDB root password are generated (`random_password`) and kept in state.
   Protect the state bucket accordingly (encryption, versioning, restricted access).
 - Provider versions and checksums are pinned by the committed `.terraform.lock.hcl` in each root.
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md). Please do not open a public issue.
 
 ## Tests
 
