@@ -221,9 +221,9 @@ variable "helpdesk_analytics_collector_sa_name" {
 }
 
 variable "helpdesk_analytics_collector_enabled" {
-  description = "Enable the analytics collector deployment"
+  description = "Run the analytics collector, which reports usage to the DuploCloud control plane"
   type        = bool
-  default     = false
+  default     = true
   nullable    = false
 }
 
