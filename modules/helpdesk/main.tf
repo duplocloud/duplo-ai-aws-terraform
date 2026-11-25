@@ -1,5 +1,5 @@
 locals {
-  # IRSA trust policies for each Helpdesk service account
+  # IRSA trust policies for each DuploCloud AI service account
   irsa_backend_trust = templatefile("${path.module}/templates/irsa-trust.json.tpl", {
     oidc_provider_arn = var.oidc_provider_arn
     oidc_provider_url = var.oidc_provider_url
@@ -68,13 +68,13 @@ resource "aws_iam_role_policy_attachment" "bedrock_subscription" {
   policy_arn = aws_iam_policy.bedrock_subscription.arn
 }
 
-# ── Helpdesk Backend IRSA (sts:AssumeRole on provider roles in any account) ───
+# ── DuploCloud AI Backend IRSA (sts:AssumeRole on provider roles in any account)
 # Not scoped to a role-name prefix or to this account: the backend assumes
 # customer-created roles registered as cloud providers, which may live in
 # any AWS account (e.g. a customer's dev/prod accounts), under any name.
 # The target account's own trust policy is what actually gates access.
 #
-# It also carries the Helpdesk bucket access, so the backend works even when
+# It also carries the DuploCloud AI bucket access, so the backend works even when
 # the node role (owned by the platform / adopted cluster) is left untouched.
 resource "aws_iam_policy" "helpdesk_backend" {
   name = "${var.cluster_name}-helpdesk-backend-policy"
@@ -122,7 +122,7 @@ resource "aws_iam_role_policy_attachment" "helpdesk_backend" {
   policy_arn = aws_iam_policy.helpdesk_backend.arn
 }
 
-# ── Helpdesk Agent IRSA (Bedrock inference) ───────────────────────────────────
+# ── DuploCloud AI Agent IRSA (Bedrock inference) ──────────────────────────────
 resource "aws_iam_policy" "helpdesk_agent_bedrock" {
   name = "${var.cluster_name}-helpdesk-agent-bedrock-policy"
   policy = jsonencode({

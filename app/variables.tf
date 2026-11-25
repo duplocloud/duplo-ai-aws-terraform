@@ -41,7 +41,7 @@ variable "addons" {
 #   helpdesk_analytics_collector_enabled, installer_irsa_role_arn,
 #   installer_rbac_service_account_token
 variable "helpdesk" {
-  description = "Helpdesk layer"
+  description = "DuploCloud AI layer (module helpdesk)"
   type        = any
 
   validation {

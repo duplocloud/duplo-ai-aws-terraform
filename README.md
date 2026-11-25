@@ -1,15 +1,16 @@
-# terraform-aws-helpdesk
+# duplo-ai-aws-terraform
 
-OpenTofu / Terraform code that deploys [DuploCloud](https://duplocloud.com) **Helpdesk** into your own AWS
-account: a VPC, an EKS cluster, EFS and S3 storage, an HTTPS certificate with DNS, the cluster add-ons, and
-the Helpdesk Helm release.
+DuploCloud AI is [DuploCloud](https://duplocloud.com)'s AI agent platform for DevOps: AI agents work tickets alongside
+your team, with a web interface and optional Slack integration. This repository is the OpenTofu / Terraform code
+that deploys DuploCloud AI into your own AWS account: a VPC, an EKS cluster, EFS and S3 storage, an HTTPS certificate
+with DNS, the cluster add-ons, and the DuploCloud AI Helm release.
 
 Every layer can be **created** or can **adopt** something you already have (an existing VPC, cluster,
 file system, bucket or certificate). Adopted resources are read, never modified. So the same code serves a
 greenfield account and an account with an established platform.
 
-This repository is used on its own, and it is also what the DuploCloud DevKit's Cloud Deployment agent
-runs. The agent pins a release of this repo and generates its setup wizard from these variables.
+You can use this repository on its own. DuploCloud's managed deployment tooling also uses this repository and
+pins tagged releases.
 
 ## Layout
 
@@ -23,7 +24,7 @@ modules/
   s3/         buckets layer      app-data and user-data buckets, encrypted, no public access
   dns/        dns layer          ACM certificate, optional Route 53 records
   addons/     addons layer       AWS Load Balancer Controller, EFS CSI driver, external-dns, storage classes
-  helpdesk/   helpdesk layer     namespace, IAM roles for service accounts, the Helpdesk Helm release
+  helpdesk/   helpdesk layer     namespace, IAM roles for service accounts, the DuploCloud AI Helm release
 ```
 
 There are two roots because the `app` root configures the Helm and Kubernetes providers from a cluster
@@ -36,7 +37,14 @@ from the platform state with `terraform_remote_state`.
 - AWS credentials with administrator access in the target account. For an adopted cluster, the credentials
   must have cluster-admin on it.
 - An S3 bucket for state.
-- A DuploCloud Helpdesk license token.
+- A DuploCloud AI license token (passed as `secrets.licensing_token`).
+- Amazon Bedrock model access in the deployment region for the Anthropic Claude models DuploCloud AI uses.
+
+## Helm chart
+
+The `app` root installs the DuploCloud AI Helm chart, which is still published as `oci://quay.io/duplocloud/helpdesk`,
+at the version set by `helpdesk.values.chart_version`. The chart's source is at
+[github.com/duplocloud/duplo-ai-helm](https://github.com/duplocloud/duplo-ai-helm).
 
 ## Inputs
 
@@ -67,12 +75,16 @@ instantiated and the root uses `provides` instead.
 Other inputs:
 
 - `deployment` (both roots): `{ name, region, host, xterm_host, account_id }`. `host` and `xterm_host` are
-  the Helpdesk hostnames.
+  the DuploCloud AI hostnames.
 - `state` (app root): `{ bucket, region, platform_key }`, where the platform state lives.
 - `secrets` (app root, sensitive map): `licensing_token`, and depending on the login method
   `local_admin_password`, `google_client_secret` or `microsoft_client_secret`; optional `slack_app_token`,
   `slack_bot_token`. Pass it as `TF_VAR_secrets` so it never lands in a file.
 - `common_tags` (both roots): tags for every resource.
+
+Every AWS resource also gets two default tags from the provider: `duplocloud:deployment = <deployment.name>`
+and `duplocloud:managed-by = cloud-deployment-agent`. The `managed-by` value is fixed and identifies resources
+created by this code, whoever runs it; it does not mean DuploCloud manages your account.
 
 The module variables (`modules/*/variables.tf`) are the full list of `values` each layer accepts, with
 descriptions and defaults.
@@ -136,6 +148,8 @@ Destroy in the reverse order: `app`, then `platform`. Adopted resources are left
   outside the VPC). Restrict it with `cluster.values.endpoint_public_access_cidrs`, including the addresses
   OpenTofu runs from, or turn it off with `endpoint_public_access = false` when OpenTofu runs inside the VPC.
 
+To report a vulnerability, see [SECURITY.md](SECURITY.md). Please do not open a public issue.
+
 ## Tests
 
 ```bash
@@ -143,7 +157,8 @@ cd platform && tofu init -backend=false && tofu test
 cd ../app   && tofu init -backend=false && tofu test
 ```
 
-The tests use mock providers and cover every layer mode; they need no AWS account.
+The tests use mock providers and cover every layer mode; they need no AWS account. CI also runs
+`tofu fmt -check` and `tflint --recursive`.
 
 ## Contributing
 
@@ -152,4 +167,8 @@ listed there.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+The code in this repository is licensed under the [Apache License 2.0](LICENSE). The DuploCloud container images it
+deploys are not: they are licensed under the DuploCloud Terms of Service, which you accept in the DuploCloud console
+when you get a license token (published at <https://duplocloud.com/legal/terms-of-service/>). Third-party
+charts, images and providers keep their own licenses. See [TERMS.md](TERMS.md) and [NOTICE](NOTICE) for the full breakdown and
+[PRIVACY.md](PRIVACY.md) for what the platform sends to DuploCloud.

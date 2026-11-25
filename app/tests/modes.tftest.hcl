@@ -176,6 +176,13 @@ run "local_login" {
     error_message = "local admin email must be added to auth super users"
   }
   assert {
+    condition = yamldecode(module.helpdesk.rendered_values).upgrader.bootstrap == {
+      enabled = true
+      values  = { channels = { initialChannel = "hdst-stable" } }
+    }
+    error_message = "the upgrader hook is on and this install enrolls on hdst-stable"
+  }
+  assert {
     condition     = !strcontains(module.helpdesk.rendered_values, "lic-token-value") && !strcontains(module.helpdesk.rendered_values, "pa,ss")
     error_message = "secrets must not be rendered into the values document"
   }

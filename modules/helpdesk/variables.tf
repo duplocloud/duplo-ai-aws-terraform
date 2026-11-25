@@ -47,12 +47,12 @@ variable "storage_class_name" {
 }
 
 variable "helpdesk_dns" {
-  description = "Helpdesk DNS hostname (e.g. helpdesk.example.com)"
+  description = "DuploCloud AI DNS hostname (e.g. duplo-ai.example.com)"
   type        = string
 }
 
 variable "helpdesk_xterm_dns" {
-  description = "Helpdesk xterm DNS hostname"
+  description = "DuploCloud AI xterm DNS hostname"
   type        = string
 }
 
@@ -221,9 +221,9 @@ variable "helpdesk_analytics_collector_sa_name" {
 }
 
 variable "helpdesk_analytics_collector_enabled" {
-  description = "Enable the analytics collector deployment"
+  description = "Run the analytics collector, which reports usage to the DuploCloud control plane"
   type        = bool
-  default     = false
+  default     = true
   nullable    = false
 }
 

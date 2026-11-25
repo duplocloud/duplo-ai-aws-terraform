@@ -1,10 +1,10 @@
 variable "helpdesk_dns" {
-  description = "Primary DNS name for the helpdesk (e.g. ai.example.com)"
+  description = "Primary DNS name for DuploCloud AI (e.g. ai.example.com)"
   type        = string
 }
 
 variable "helpdesk_xterm_dns" {
-  description = "DNS name for the helpdesk xterm service"
+  description = "DNS name for the DuploCloud AI xterm service"
   type        = string
 }
 
