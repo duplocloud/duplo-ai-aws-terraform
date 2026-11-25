@@ -66,6 +66,10 @@ module "eks" {
   node_disk_size        = try(var.cluster.values.node_disk_size, null)
   node_ami_type         = try(var.cluster.values.node_ami_type, null)
   additional_admin_arns = try(var.cluster.values.additional_admin_arns, null)
+
+  endpoint_public_access          = try(var.cluster.values.endpoint_public_access, null)
+  endpoint_public_access_cidrs    = try(var.cluster.values.endpoint_public_access_cidrs, null)
+  node_role_web_identity_subjects = try(var.cluster.values.node_role_web_identity_subjects, null)
 }
 
 module "efs" {

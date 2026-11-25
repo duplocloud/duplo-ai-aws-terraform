@@ -397,3 +397,115 @@ run "plans_without_platform_outputs" {
     error_message = "missing platform outputs must default instead of failing evaluation"
   }
 }
+
+# The node permissions policy goes only on a node role the platform created (contract: adopt modes never modify
+# the adopted resource).
+run "node_permissions_on_created_node_role" {
+  command = apply
+
+  assert {
+    condition     = module.addons[0].node_permissions_attached
+    error_message = "a node role the platform created (no node_role_managed output: v0.1.1 state, default name) keeps the node permissions policy"
+  }
+}
+
+run "node_permissions_not_on_adopted_node_role" {
+  command = apply
+
+  override_data {
+    target = data.terraform_remote_state.platform
+    values = {
+      outputs = {
+        vpc_id                         = "vpc-1"
+        public_subnet_ids              = ["p1", "p2"]
+        cluster_name                   = "c1"
+        cluster_endpoint               = "https://mock.eks.example"
+        cluster_ca_certificate         = "Y2E="
+        oidc_provider_arn              = "arn:aws:iam::123456789012:oidc-provider/oidc.mock/id/ABC"
+        oidc_provider_url              = "oidc.mock/id/ABC"
+        alb_sg_id                      = "sg-alb"
+        efs_id                         = "fs-123"
+        bucket_arn                     = "arn:aws:s3:::acme-bucket"
+        userdata_bucket_arn            = "arn:aws:s3:::acme-userdata"
+        certificate_arn                = "arn:aws:acm:us-east-1:123456789012:certificate/abc"
+        certificate_validation_records = []
+        route53_zone_id                = "Z123"
+        dns_mode                       = "route53"
+        node_role_name                 = "c1-node-role"
+        node_role_managed              = false
+      }
+    }
+  }
+
+  assert {
+    condition     = !module.addons[0].node_permissions_attached
+    error_message = "an adopted cluster's node role must not be modified, even when its name matches the created role's"
+  }
+}
+
+run "node_permissions_on_managed_node_role" {
+  command = apply
+
+  override_data {
+    target = data.terraform_remote_state.platform
+    values = {
+      outputs = {
+        vpc_id                         = "vpc-1"
+        public_subnet_ids              = ["p1", "p2"]
+        cluster_name                   = "c1"
+        cluster_endpoint               = "https://mock.eks.example"
+        cluster_ca_certificate         = "Y2E="
+        oidc_provider_arn              = "arn:aws:iam::123456789012:oidc-provider/oidc.mock/id/ABC"
+        oidc_provider_url              = "oidc.mock/id/ABC"
+        alb_sg_id                      = "sg-alb"
+        efs_id                         = "fs-123"
+        bucket_arn                     = "arn:aws:s3:::acme-bucket"
+        userdata_bucket_arn            = "arn:aws:s3:::acme-userdata"
+        certificate_arn                = "arn:aws:acm:us-east-1:123456789012:certificate/abc"
+        certificate_validation_records = []
+        route53_zone_id                = "Z123"
+        dns_mode                       = "route53"
+        node_role_name                 = "custom-role"
+        node_role_managed              = true
+      }
+    }
+  }
+
+  assert {
+    condition     = module.addons[0].node_permissions_attached
+    error_message = "node_role_managed = true attaches the node permissions policy"
+  }
+}
+
+run "node_permissions_not_on_unknown_node_role_of_old_state" {
+  command = apply
+
+  override_data {
+    target = data.terraform_remote_state.platform
+    values = {
+      outputs = {
+        vpc_id                         = "vpc-1"
+        public_subnet_ids              = ["p1", "p2"]
+        cluster_name                   = "c1"
+        cluster_endpoint               = "https://mock.eks.example"
+        cluster_ca_certificate         = "Y2E="
+        oidc_provider_arn              = "arn:aws:iam::123456789012:oidc-provider/oidc.mock/id/ABC"
+        oidc_provider_url              = "oidc.mock/id/ABC"
+        alb_sg_id                      = "sg-alb"
+        efs_id                         = "fs-123"
+        bucket_arn                     = "arn:aws:s3:::acme-bucket"
+        userdata_bucket_arn            = "arn:aws:s3:::acme-userdata"
+        certificate_arn                = "arn:aws:acm:us-east-1:123456789012:certificate/abc"
+        certificate_validation_records = []
+        route53_zone_id                = "Z123"
+        dns_mode                       = "route53"
+        node_role_name                 = "customer-node-role"
+      }
+    }
+  }
+
+  assert {
+    condition     = !module.addons[0].node_permissions_attached
+    error_message = "a v0.1.1 platform state with an adopted node role (name not the created role's) must not get the policy"
+  }
+}

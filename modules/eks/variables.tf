@@ -67,3 +67,34 @@ variable "additional_admin_arns" {
   default     = []
   nullable    = false
 }
+
+variable "endpoint_public_access" {
+  description = "Expose the cluster API on a public endpoint. The app root (Helm and Kubernetes providers) reaches the cluster through it, so turn it off only when OpenTofu runs inside the VPC."
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
+variable "endpoint_public_access_cidrs" {
+  description = "CIDR blocks allowed to reach the public cluster API endpoint. Include the addresses OpenTofu runs from (the DuploCloud agent's egress), or the app root can't reach the cluster."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+  nullable    = false
+
+  validation {
+    condition     = length(var.endpoint_public_access_cidrs) > 0 && alltrue([for c in var.endpoint_public_access_cidrs : can(cidrhost(c, 0))])
+    error_message = "endpoint_public_access_cidrs must be a non-empty list of valid CIDR blocks."
+  }
+}
+
+variable "node_role_web_identity_subjects" {
+  description = "Service-account subjects (system:serviceaccount:<namespace>:<name>, wildcards allowed) that may assume the node role through the cluster's OIDC provider. Empty: none."
+  type        = list(string)
+  default     = ["system:serviceaccount:helpdesk:*"]
+  nullable    = false
+
+  validation {
+    condition     = alltrue([for s in var.node_role_web_identity_subjects : startswith(s, "system:serviceaccount:") && s != "system:serviceaccount:*:*"])
+    error_message = "Each subject must start with system:serviceaccount: and must not be system:serviceaccount:*:* (every pod in the cluster)."
+  }
+}

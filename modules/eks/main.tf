@@ -23,25 +23,33 @@ resource "aws_iam_role" "node" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        # EC2 instances (node bootstrap)
-        Effect    = "Allow"
-        Principal = { Service = "ec2.amazonaws.com" }
-        Action    = "sts:AssumeRole"
-      },
-      {
-        # Any pod service account in the cluster can assume this role via OIDC
-        Effect    = "Allow"
-        Principal = { Federated = aws_iam_openid_connect_provider.this.arn }
-        Action    = "sts:AssumeRoleWithWebIdentity"
-        Condition = {
-          StringLike = {
-            "${replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:*:*"
+    Statement = concat(
+      [
+        {
+          # EC2 instances (node bootstrap)
+          Effect    = "Allow"
+          Principal = { Service = "ec2.amazonaws.com" }
+          Action    = "sts:AssumeRole"
+        }
+      ],
+      # Only the listed pod service accounts (by default the Helpdesk namespace's) can assume this role via OIDC;
+      # every Helpdesk component that calls AWS also has its own IRSA role. An empty list drops the statement.
+      length(var.node_role_web_identity_subjects) == 0 ? [] : [
+        {
+          Effect    = "Allow"
+          Principal = { Federated = aws_iam_openid_connect_provider.this.arn }
+          Action    = "sts:AssumeRoleWithWebIdentity"
+          Condition = {
+            StringLike = {
+              "${replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:sub" = var.node_role_web_identity_subjects
+            }
+            StringEquals = {
+              "${replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:aud" = "sts.amazonaws.com"
+            }
           }
         }
-      }
-    ]
+      ]
+    )
   })
 }
 
@@ -190,8 +198,11 @@ resource "aws_eks_cluster" "this" {
   vpc_config {
     subnet_ids              = var.private_subnet_ids
     security_group_ids      = [aws_security_group.cluster.id]
-    endpoint_public_access  = true
+    endpoint_public_access  = var.endpoint_public_access
     endpoint_private_access = true
+    # The agent runs OpenTofu (helm and kubernetes providers in the app root) from outside the VPC, so its
+    # egress addresses must stay in this list, and the public endpoint must stay on, for the app root to plan.
+    public_access_cidrs = var.endpoint_public_access ? var.endpoint_public_access_cidrs : null
   }
 
   depends_on = [
