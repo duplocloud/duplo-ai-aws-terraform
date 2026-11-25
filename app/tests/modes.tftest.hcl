@@ -78,7 +78,6 @@ variables {
   helpdesk = {
     mode = "create"
     values = {
-      login_method      = "local"
       local_admin_email = "admin@example.com"
     }
   }
@@ -172,7 +171,7 @@ run "local_login" {
     error_message = "licensing token must be passed as a sensitive value"
   }
   assert {
-    condition     = strcontains(module.helpdesk.rendered_values, "authSuperUsers: admin@example.com")
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com"
     error_message = "local admin email must be added to auth super users"
   }
   assert {
@@ -188,31 +187,57 @@ run "local_login" {
   }
 }
 
-run "google_login" {
+run "admin_emails_are_super_users" {
   command = apply
 
   variables {
     helpdesk = {
       mode = "create"
       values = {
-        login_method     = "google"
-        google_client_id = "gid"
+        local_admin_email = "admin@example.com"
+        auth_super_users  = " ops1@example.com, admin@example.com,,ops2@example.com "
       }
-    }
-    secrets = {
-      licensing_token      = "lic-token-value"
-      google_client_secret = "gsecret"
     }
   }
 
   assert {
-    condition     = !contains(module.helpdesk.values_preview_keys, "backend.extraEnv.Authentication__LocalAdminEmail")
-    error_message = "google login must not set local admin env"
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com,ops1@example.com,ops2@example.com"
+    error_message = "Super users are the local admin plus the admin emails, trimmed and without duplicates."
   }
   assert {
-    condition     = contains(module.helpdesk.sensitive_value_labels, "secrets.googleClientSecret") && !contains(module.helpdesk.sensitive_value_labels, "backend.extraEnv.Authentication__LocalAdminPassword")
-    error_message = "google login must pass only the google client secret"
+    condition     = yamldecode(module.helpdesk.rendered_values).secrets.googleClientId == "" && yamldecode(module.helpdesk.rendered_values).secrets.microsoftClientId == ""
+    error_message = "Google and Microsoft sign-in must stay off."
   }
+}
+
+run "rejects_sso_login_method" {
+  command = plan
+
+  variables {
+    helpdesk = { mode = "create", values = { login_method = "google", google_client_id = "gid", local_admin_email = "admin@example.com" } }
+  }
+
+  expect_failures = [var.helpdesk]
+}
+
+run "rejects_bad_admin_email" {
+  command = plan
+
+  variables {
+    helpdesk = { mode = "create", values = { local_admin_email = "admin@example.com", auth_super_users = "ops1@example.com,not-an-email" } }
+  }
+
+  expect_failures = [var.helpdesk]
+}
+
+run "rejects_null_admin_email" {
+  command = plan
+
+  variables {
+    helpdesk = { mode = "create", values = { local_admin_email = null } }
+  }
+
+  expect_failures = [var.helpdesk]
 }
 
 run "no_values_file" {
@@ -291,11 +316,11 @@ run "generated_and_secret_outputs" {
   }
 }
 
-run "rejects_unknown_login_method" {
+run "rejects_missing_admin_email" {
   command = plan
 
   variables {
-    helpdesk = { mode = "create", values = { login_method = "saml" } }
+    helpdesk = { mode = "create", values = {} }
   }
 
   expect_failures = [var.helpdesk]
@@ -308,7 +333,7 @@ run "local_login_requires_password" {
     secrets = { licensing_token = "lic-token-value" }
   }
 
-  expect_failures = [var.helpdesk]
+  expect_failures = [var.secrets]
 }
 
 run "adopted_bucket_without_arn" {

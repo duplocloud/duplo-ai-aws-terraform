@@ -1,17 +1,12 @@
 locals {
-  is_local     = var.login_method == "local"
-  is_google    = var.login_method == "google"
-  is_microsoft = var.login_method == "microsoft"
-
-  super_users = join(",", compact(concat(
-    compact(split(",", var.auth_super_users)),
-    local.is_local ? [var.local_admin_email] : []
-  )))
+  # Sign-in is the local admin only. Super users: the local admin plus the admin emails.
+  super_users = distinct(concat(
+    [var.local_admin_email],
+    [for e in split(",", var.auth_super_users) : trimspace(e) if trimspace(e) != ""]
+  ))
 
   # Non-secret backend environment, rendered into the values document.
-  extra_env = local.is_local ? [
-    { name = "Authentication__LocalAdminEmail", value = var.local_admin_email }
-  ] : []
+  extra_env = [{ name = "Authentication__LocalAdminEmail", value = var.local_admin_email }]
 
   rendered_values = templatefile("${path.module}/templates/values.yml.tftpl", {
     storage_class_name                         = var.storage_class_name
@@ -21,10 +16,7 @@ locals {
     certificate_arn                            = var.certificate_arn
     alb_sg_id                                  = var.alb_sg_id
     public_subnet_ids                          = join(",", var.public_subnet_ids)
-    google_client_id                           = local.is_google ? var.google_client_id : ""
-    microsoft_client_id                        = local.is_microsoft ? var.microsoft_client_id : ""
-    microsoft_tenant_id                        = local.is_microsoft ? var.microsoft_tenant_id : ""
-    auth_super_users                           = local.super_users
+    auth_super_users                           = join(",", local.super_users)
     backend_extra_env                          = local.extra_env
     slack_backend_enabled                      = var.slack_backend_enabled
     slack_backend_image_tag                    = var.slack_backend_image_tag
@@ -63,13 +55,11 @@ locals {
     { label = "secrets.licensingToken", path = "secrets.licensingToken", key = "licensing_token", on = true },
     { label = "secrets.jwtSharedSecret", path = "secrets.jwtSharedSecret", key = "jwt_shared_secret", on = true },
     { label = "mongodb.auth.rootPassword", path = "mongodb.auth.rootPassword", key = "mongodb_root_password", on = true },
-    { label = "secrets.googleClientSecret", path = "secrets.googleClientSecret", key = "google_client_secret", on = local.is_google },
-    { label = "secrets.microsoftClientSecret", path = "secrets.microsoftClientSecret", key = "microsoft_client_secret", on = local.is_microsoft },
     {
       label = "backend.extraEnv.Authentication__LocalAdminPassword"
       path  = "backend.extraEnv[${length(local.extra_env)}].value"
       key   = "local_admin_password"
-      on    = local.is_local
+      on    = true
     },
     { label = "slackBackend.envFromSecret.data.SLACK_APP_TOKEN", path = "slackBackend.envFromSecret.data.SLACK_APP_TOKEN", key = "slack_app_token", on = var.slack_backend_enabled },
     { label = "slackBackend.envFromSecret.data.SLACK_BOT_TOKEN", path = "slackBackend.envFromSecret.data.SLACK_BOT_TOKEN", key = "slack_bot_token", on = var.slack_backend_enabled },
@@ -119,12 +109,9 @@ resource "helm_release" "helpdesk" {
   values = [local.rendered_values]
 
   # The secret env var's name sits next to its sensitive value in extraEnv.
-  dynamic "set" {
-    for_each = local.is_local ? [1] : []
-    content {
-      name  = "backend.extraEnv[${length(local.extra_env)}].name"
-      value = "Authentication__LocalAdminPassword"
-    }
+  set {
+    name  = "backend.extraEnv[${length(local.extra_env)}].name"
+    value = "Authentication__LocalAdminPassword"
   }
 
   # Helm's --set parser treats , \ { } specially, so they are backslash-escaped;

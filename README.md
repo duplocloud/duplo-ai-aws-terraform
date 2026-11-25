@@ -77,9 +77,12 @@ Other inputs:
 - `deployment` (both roots): `{ name, region, host, xterm_host, account_id }`. `host` and `xterm_host` are
   the DuploCloud AI hostnames.
 - `state` (app root): `{ bucket, region, platform_key }`, where the platform state lives.
-- `secrets` (app root, sensitive map): `licensing_token`, and depending on the login method
-  `local_admin_password`, `google_client_secret` or `microsoft_client_secret`; optional `slack_app_token`,
+- `secrets` (app root, sensitive map): `licensing_token`, `local_admin_password`; optional `slack_app_token`,
   `slack_bot_token`. Pass it as `TF_VAR_secrets` so it never lands in a file.
+- Sign-in is the local admin only (`helpdesk.values.local_admin_email` and `secrets.local_admin_password`).
+  The local admin is a super user, along with any admin emails in `helpdesk.values.auth_super_users`
+  (comma-separated). Google and Microsoft sign-in are not offered; a saved `login_method` other than `local`
+  is rejected with a migration message.
 - `common_tags` (both roots): tags for every resource.
 
 Every AWS resource also gets two default tags from the provider: `duplocloud:deployment = <deployment.name>`
