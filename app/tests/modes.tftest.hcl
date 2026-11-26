@@ -183,6 +183,10 @@ run "local_login" {
     error_message = "the upgrader hook is on and this install enrolls on hdst-stable"
   }
   assert {
+    condition     = yamldecode(module.helpdesk.rendered_values).clickhouse.persistence.storageClass == "gp3"
+    error_message = "ClickHouse must request gp3: the cluster has no default StorageClass, so an empty class leaves its PVC Pending"
+  }
+  assert {
     condition     = !strcontains(module.helpdesk.rendered_values, "lic-token-value") && !strcontains(module.helpdesk.rendered_values, "pa,ss")
     error_message = "secrets must not be rendered into the values document"
   }

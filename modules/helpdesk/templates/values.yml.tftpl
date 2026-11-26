@@ -66,6 +66,12 @@ mongodbBackup:
     # CronJob's first scheduled run — it would stay Pending (and block Helm's
     # wait) until then. ai-studio-efs binds Immediate instead.
     storageClass: ${storage_class_name}
+clickhouse:
+  persistence:
+    # Chart 1.0.0 runs ClickHouse by default with no storage class. The cluster
+    # has no default StorageClass (gp3 is created non-default), so the PVC would
+    # stay Pending and block Helm's wait. A chart without ClickHouse ignores this.
+    storageClass: gp3
 secrets:
   # OAuth client IDs. An empty string ("") disables that provider. The client
   # secrets, jwtSharedSecret and licensingToken are passed as sensitive Helm
