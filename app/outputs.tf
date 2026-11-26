@@ -38,3 +38,8 @@ output "generated" {
     mongodb_root_password = random_password.mongodb_root_password.result
   }
 }
+
+output "llm_bedrock_role_arn" {
+  description = "IAM role ARN the backend assumes for Bedrock (first-run setup's LLM provider)"
+  value       = module.helpdesk.llm_bedrock_role_arn
+}

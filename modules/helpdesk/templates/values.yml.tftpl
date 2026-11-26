@@ -126,3 +126,9 @@ upgrader:
     values:
       channels:
         initialChannel: hdst-stable
+# First-run setup (DUPLOAI-5822): a fresh install registers a Bedrock LLM provider with the role the backend assumes.
+firstRunSetup:
+  llm:
+    bedrock:
+      iamRoleArn: ${llm_bedrock_role_arn}
+      region: ${infra_region}

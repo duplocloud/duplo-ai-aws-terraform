@@ -37,6 +37,7 @@ locals {
     helpdesk_analytics_collector_irsa_role_arn = aws_iam_role.helpdesk_analytics_collector.arn
     helpdesk_backend_irsa_role_arn             = aws_iam_role.helpdesk_backend.arn
     helpdesk_agent_irsa_role_arn               = aws_iam_role.helpdesk_agent_bedrock.arn
+    llm_bedrock_role_arn                       = aws_iam_role.helpdesk_llm_bedrock.arn
     helpdesk_analytics_collector_app_instance  = var.deployment_name
     helpdesk_mcp_enabled                       = var.helpdesk_mcp_enabled
     installer_rbac_service_account_token       = var.installer_rbac_service_account_token
