@@ -51,3 +51,23 @@ output "analytics_collector_irsa_role_arn" {
   description = "IAM role ARN for the analytics collector"
   value       = aws_iam_role.helpdesk_analytics_collector.arn
 }
+
+output "llm_bedrock_role_arn" {
+  description = "IAM role ARN the backend assumes for Bedrock (first-run setup's LLM provider)"
+  value       = aws_iam_role.helpdesk_llm_bedrock.arn
+}
+
+output "llm_bedrock_trust_policy" {
+  description = "Trust policy of the Bedrock LLM role (only the backend role may assume it)"
+  value       = local.llm_bedrock_trust_policy
+}
+
+output "llm_bedrock_policy" {
+  description = "Permissions policy of the Bedrock LLM role"
+  value       = local.llm_bedrock_policy
+}
+
+output "agent_bedrock_policy" {
+  description = "Permissions policy of the agent's own (fallback) Bedrock role"
+  value       = aws_iam_policy.helpdesk_agent_bedrock.policy
+}

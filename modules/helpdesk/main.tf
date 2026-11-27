@@ -1,4 +1,23 @@
 locals {
+  # Bedrock actions for the LLM role the backend assumes per ticket turn (the Bedrock LLM provider). Matches the ai-ops
+  # install skill's agent policy, plus Converse*. The agent's own role, a fallback when no LLM provider is set up,
+  # keeps inference only.
+  bedrock_actions = [
+    "bedrock:InvokeModel",
+    "bedrock:InvokeModelWithResponseStream",
+    "bedrock:Converse",
+    "bedrock:ConverseStream",
+    "bedrock:GetFoundationModel",
+    "bedrock:GetFoundationModelAvailability",
+    "bedrock:ListInferenceProfiles",
+    "bedrock:GetInferenceProfile",
+    "bedrock:CreateInferenceProfile",
+    "bedrock:Rerank",
+    "bedrock:ApplyGuardrail",
+    "bedrock:GetGuardrail",
+    "bedrock:ListGuardrails",
+  ]
+
   # IRSA trust policies for each DuploCloud AI service account
   irsa_backend_trust = templatefile("${path.module}/templates/irsa-trust.json.tpl", {
     oidc_provider_arn = var.oidc_provider_arn
@@ -151,6 +170,45 @@ resource "aws_iam_role" "helpdesk_agent_bedrock" {
 resource "aws_iam_role_policy_attachment" "helpdesk_agent_bedrock" {
   role       = aws_iam_role.helpdesk_agent_bedrock.name
   policy_arn = aws_iam_policy.helpdesk_agent_bedrock.arn
+}
+
+# ── Bedrock LLM role (first-run setup's LLM provider, DUPLOAI-5822) ─────────────
+# First-run setup registers a Bedrock LLM provider with this role. Each ticket turn the backend assumes it (its own
+# IRSA role already allows sts:AssumeRole) and hands the agent short-lived credentials. Only the backend role may
+# assume it. No ExternalId condition: the trust names one role in this account, so there is no confused deputy.
+locals {
+  llm_bedrock_trust_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { AWS = aws_iam_role.helpdesk_backend.arn }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+  llm_bedrock_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "BedrockInference"
+      Effect   = "Allow"
+      Action   = local.bedrock_actions
+      Resource = "*"
+    }]
+  })
+}
+
+resource "aws_iam_role" "helpdesk_llm_bedrock" {
+  name               = "${var.cluster_name}-helpdesk-llm-bedrock-role"
+  assume_role_policy = local.llm_bedrock_trust_policy
+}
+
+resource "aws_iam_policy" "helpdesk_llm_bedrock" {
+  name   = "${var.cluster_name}-helpdesk-llm-bedrock-policy"
+  policy = local.llm_bedrock_policy
+}
+
+resource "aws_iam_role_policy_attachment" "helpdesk_llm_bedrock" {
+  role       = aws_iam_role.helpdesk_llm_bedrock.name
+  policy_arn = aws_iam_policy.helpdesk_llm_bedrock.arn
 }
 
 resource "aws_iam_role" "helpdesk_analytics_collector" {

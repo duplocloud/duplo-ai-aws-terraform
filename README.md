@@ -127,7 +127,8 @@ Destroy in the reverse order: `app`, then `platform`. Adopted resources are left
 `platform`: network, cluster, storage and certificate identifiers (`vpc_id`, `cluster_name`,
 `cluster_endpoint`, `efs_id`, `bucket_name`, `certificate_arn`, `certificate_validation_records`,
 `dns_mode`, and more; see `platform/outputs.tf`). `app`: `helpdesk_url`, `load_balancer_hostname`,
-`dns_records` (the records to create when DNS is external), and the sensitive `secrets` and `generated`.
+`dns_records` (the records to create when DNS is external), `llm_bedrock_role_arn` (the role behind the
+Bedrock LLM provider that first-run setup creates), and the sensitive `secrets` and `generated`.
 
 ## Security
 
@@ -140,7 +141,8 @@ Destroy in the reverse order: `app`, then `platform`. Adopted resources are left
   attach anything to the cluster's node role (the platform output `node_role_managed` is `false`). The Helpdesk
   pods get their AWS access from their own IAM roles for service accounts (`modules/helpdesk`): the backend
   (bucket access and `sts:AssumeRole` into the cloud provider roles it is given), the agent (Bedrock) and the
-  Bedrock subscription job.
+  Bedrock subscription job. A separate `<cluster>-helpdesk-llm-bedrock-role` (Bedrock only) trusts just the backend's
+  role: the backend assumes it each ticket turn for the Bedrock LLM provider and hands the agent short-lived keys.
 - On a cluster this repo creates, only the service accounts in `cluster.values.node_role_web_identity_subjects`
   (default `system:serviceaccount:helpdesk:*`, the Helpdesk namespace) can assume the node role through the
   cluster's OIDC provider; `[]` removes that trust. If you install Helpdesk into another namespace, list it here.

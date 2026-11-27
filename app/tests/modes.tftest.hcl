@@ -513,3 +513,74 @@ run "node_permissions_not_on_unknown_node_role_of_old_state" {
     error_message = "a v0.1.1 platform state with an adopted node role (name not the created role's) must not get the policy"
   }
 }
+
+# First-run setup (DUPLOAI-5822): the backend assumes a dedicated Bedrock role, and the chart learns its ARN.
+run "first_run_setup_llm_role" {
+  command = apply
+
+  override_resource {
+    target = module.helpdesk.aws_iam_role.helpdesk_backend
+    values = { arn = "arn:aws:iam::123456789012:role/acme-backend" }
+  }
+  override_resource {
+    target = module.helpdesk.aws_iam_role.helpdesk_llm_bedrock
+    values = { arn = "arn:aws:iam::123456789012:role/acme-llm" }
+  }
+
+  assert {
+    condition     = jsondecode(module.helpdesk.llm_bedrock_trust_policy).Statement[0].Principal == { AWS = "arn:aws:iam::123456789012:role/acme-backend" } && jsondecode(module.helpdesk.llm_bedrock_trust_policy).Statement[0].Action == "sts:AssumeRole"
+    error_message = "only the backend role may assume the Bedrock LLM role"
+  }
+  assert {
+    condition = yamldecode(module.helpdesk.rendered_values).firstRunSetup.llm.bedrock == {
+      iamRoleArn = "arn:aws:iam::123456789012:role/acme-llm"
+      region     = "us-east-1"
+    }
+    error_message = "the chart's first-run setup must get the Bedrock LLM role and region"
+  }
+  assert {
+    condition     = yamldecode(module.helpdesk.rendered_values).firstRunSetup.activeDeadlineSeconds == 840
+    error_message = "first-run setup's Job deadline must use the helm_release timeout (900 s), not the chart's 5m-safe default"
+  }
+  assert {
+    condition     = output.llm_bedrock_role_arn == "arn:aws:iam::123456789012:role/acme-llm"
+    error_message = "the Bedrock LLM role ARN must be an output"
+  }
+  assert {
+    condition = toset(jsondecode(module.helpdesk.llm_bedrock_policy).Statement[0].Action) == toset([
+      "bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream", "bedrock:Converse", "bedrock:ConverseStream",
+      "bedrock:GetFoundationModel", "bedrock:GetFoundationModelAvailability", "bedrock:ListInferenceProfiles",
+      "bedrock:GetInferenceProfile", "bedrock:CreateInferenceProfile", "bedrock:Rerank", "bedrock:ApplyGuardrail",
+      "bedrock:GetGuardrail", "bedrock:ListGuardrails",
+    ])
+    error_message = "the Bedrock LLM role must carry the agent's Bedrock actions"
+  }
+  assert {
+    condition = toset(jsondecode(module.helpdesk.agent_bedrock_policy).Statement[0].Action) == toset([
+      "bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream", "bedrock:Converse", "bedrock:ConverseStream",
+    ])
+    error_message = "the agent's own role keeps inference only; the wider list is for the LLM role"
+  }
+}
+
+# First-run setup's provisioning token belongs to the first super user, and only the local admin exists when the
+# chart's post-install hook runs, so the local admin must come first.
+run "local_admin_is_first_super_user" {
+  command = apply
+
+  variables {
+    helpdesk = {
+      mode = "create"
+      values = {
+        login_method      = "local"
+        local_admin_email = "admin@example.com"
+        auth_super_users  = "ops@example.com"
+      }
+    }
+  }
+
+  assert {
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com,ops@example.com"
+    error_message = "the local admin must be the first auth super user"
+  }
+}
