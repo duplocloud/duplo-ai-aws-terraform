@@ -535,6 +535,10 @@ run "first_run_setup_llm_role" {
     error_message = "the chart's first-run setup must get the Bedrock LLM role and region"
   }
   assert {
+    condition     = yamldecode(module.helpdesk.rendered_values).firstRunSetup.activeDeadlineSeconds == 840
+    error_message = "first-run setup's Job deadline must use the helm_release timeout (900 s), not the chart's 5m-safe default"
+  }
+  assert {
     condition     = output.llm_bedrock_role_arn == "arn:aws:iam::123456789012:role/acme-llm"
     error_message = "the Bedrock LLM role ARN must be an output"
   }
