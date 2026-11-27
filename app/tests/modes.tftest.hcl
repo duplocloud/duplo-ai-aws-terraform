@@ -548,3 +548,25 @@ run "first_run_setup_llm_role" {
     error_message = "the Bedrock LLM role must carry the agent's Bedrock actions"
   }
 }
+
+# First-run setup's provisioning token belongs to the first super user, and only the local admin exists when the
+# chart's post-install hook runs, so the local admin must come first.
+run "local_admin_is_first_super_user" {
+  command = apply
+
+  variables {
+    helpdesk = {
+      mode = "create"
+      values = {
+        login_method      = "local"
+        local_admin_email = "admin@example.com"
+        auth_super_users  = "ops@example.com"
+      }
+    }
+  }
+
+  assert {
+    condition     = yamldecode(module.helpdesk.rendered_values).config.authSuperUsers == "admin@example.com,ops@example.com"
+    error_message = "the local admin must be the first auth super user"
+  }
+}

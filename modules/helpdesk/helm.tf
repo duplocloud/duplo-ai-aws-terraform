@@ -3,9 +3,11 @@ locals {
   is_google    = var.login_method == "google"
   is_microsoft = var.login_method == "microsoft"
 
+  # The local admin comes first: the chart's first-run setup token belongs to the first super user, and only the
+  # local admin exists when the post-install hook runs.
   super_users = join(",", compact(concat(
-    compact(split(",", var.auth_super_users)),
-    local.is_local ? [var.local_admin_email] : []
+    local.is_local ? [var.local_admin_email] : [],
+    compact(split(",", var.auth_super_users))
   )))
 
   # Non-secret backend environment, rendered into the values document.
