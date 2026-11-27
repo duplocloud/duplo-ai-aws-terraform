@@ -66,3 +66,8 @@ output "llm_bedrock_policy" {
   description = "Permissions policy of the Bedrock LLM role"
   value       = local.llm_bedrock_policy
 }
+
+output "agent_bedrock_policy" {
+  description = "Permissions policy of the agent's own (fallback) Bedrock role"
+  value       = aws_iam_policy.helpdesk_agent_bedrock.policy
+}

@@ -551,6 +551,12 @@ run "first_run_setup_llm_role" {
     ])
     error_message = "the Bedrock LLM role must carry the agent's Bedrock actions"
   }
+  assert {
+    condition = toset(jsondecode(module.helpdesk.agent_bedrock_policy).Statement[0].Action) == toset([
+      "bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream", "bedrock:Converse", "bedrock:ConverseStream",
+    ])
+    error_message = "the agent's own role keeps inference only; the wider list is for the LLM role"
+  }
 }
 
 # First-run setup's provisioning token belongs to the first super user, and only the local admin exists when the

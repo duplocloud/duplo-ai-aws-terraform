@@ -1,6 +1,7 @@
 locals {
-  # Bedrock actions for whatever calls the models: the agent (its own fallback identity) and the LLM role the backend
-  # assumes per ticket turn. Matches the ai-ops install skill's agent policy, plus Converse*.
+  # Bedrock actions for the LLM role the backend assumes per ticket turn (the Bedrock LLM provider). Matches the ai-ops
+  # install skill's agent policy, plus Converse*. The agent's own role, a fallback when no LLM provider is set up,
+  # keeps inference only.
   bedrock_actions = [
     "bedrock:InvokeModel",
     "bedrock:InvokeModelWithResponseStream",
@@ -147,9 +148,14 @@ resource "aws_iam_policy" "helpdesk_agent_bedrock" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "BedrockInference"
-        Effect   = "Allow"
-        Action   = local.bedrock_actions
+        Sid    = "BedrockInference"
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+          "bedrock:Converse",
+          "bedrock:ConverseStream"
+        ]
         Resource = "*"
       }
     ]
