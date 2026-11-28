@@ -297,3 +297,10 @@ variable "slack_app_portals" {
   default     = ""
   nullable    = false
 }
+
+variable "vpc_id" {
+  description = "ID of the VPC the helpdesk runs in. Scopes the backend's VPC-peering permissions (accept/delete peering, helpdesk-side routes) to this VPC. Empty leaves only the read-only VPC discovery permissions."
+  type        = string
+  default     = ""
+  nullable    = false
+}

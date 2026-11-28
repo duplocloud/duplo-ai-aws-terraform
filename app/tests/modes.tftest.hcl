@@ -12,6 +12,9 @@ mock_provider "aws" {
   mock_data "aws_region" {
     defaults = { name = "us-east-1" }
   }
+  mock_data "aws_partition" {
+    defaults = { partition = "aws" }
+  }
   mock_data "aws_eks_cluster_auth" {
     defaults = { token = "mock-token" }
   }

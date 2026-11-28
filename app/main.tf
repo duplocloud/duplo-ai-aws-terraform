@@ -98,6 +98,7 @@ module "helpdesk" {
   certificate_arn        = local.platform.certificate_arn
   alb_sg_id              = local.platform.alb_sg_id
   public_subnet_ids      = local.platform.public_subnet_ids
+  vpc_id                 = local.platform.vpc_id
   s3_bucket_arn          = local.bucket_arn
   s3_userdata_bucket_arn = local.userdata_bucket_arn
 
