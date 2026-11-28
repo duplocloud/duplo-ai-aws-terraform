@@ -95,6 +95,44 @@ resource "aws_iam_role_policy_attachment" "bedrock_subscription" {
 #
 # It also carries the DuploCloud AI bucket access, so the backend works even when
 # the node role (owned by the platform / adopted cluster) is left untouched.
+#
+# It also carries the helpdesk-VPC permissions for Network baselines' automatic VPC
+# peering (DUPLOAI-5870). Pods can't reach IMDS on these nodes (IMDSv2, hop limit 1), so
+# the backend finds its own VPC through the EC2 API: the ENI that owns the pod IP, then
+# that VPC's CIDRs. Once a new network's stack requests peering, the backend accepts it
+# and adds the return routes in the helpdesk VPC. Describe* calls can't be scoped to a
+# resource; the calls that change things are limited to this VPC.
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+
+locals {
+  ec2_arn_prefix   = "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}"
+  helpdesk_vpc_arn = "${local.ec2_arn_prefix}:vpc/${var.vpc_id}"
+
+  # A filtered for-expression, not `cond ? [] : [...]`: the two statements have different
+  # object shapes, which a conditional can't unify with an empty tuple.
+  helpdesk_vpc_peering_statements = [for s in [
+    {
+      Sid       = "HelpdeskVpcAcceptPeering"
+      Effect    = "Allow"
+      Action    = ["ec2:AcceptVpcPeeringConnection", "ec2:DeleteVpcPeeringConnection"]
+      Resource  = ["${local.ec2_arn_prefix}:vpc-peering-connection/*", local.helpdesk_vpc_arn]
+      Condition = {
+        ArnEquals = { "ec2:AccepterVpc" = local.helpdesk_vpc_arn }
+      }
+    },
+    {
+      Sid       = "HelpdeskVpcPeeringRoutes"
+      Effect    = "Allow"
+      Action    = ["ec2:CreateRoute", "ec2:DeleteRoute"]
+      Resource  = "${local.ec2_arn_prefix}:route-table/*"
+      Condition = {
+        ArnEquals = { "ec2:Vpc" = local.helpdesk_vpc_arn }
+      }
+    },
+  ] : s if var.vpc_id != ""]
+}
+
 resource "aws_iam_policy" "helpdesk_backend" {
   name = "${var.cluster_name}-helpdesk-backend-policy"
   policy = jsonencode({
@@ -106,8 +144,20 @@ resource "aws_iam_policy" "helpdesk_backend" {
           Effect   = "Allow"
           Action   = "sts:AssumeRole"
           Resource = "arn:aws:iam::*:role/*"
+        },
+        {
+          Sid    = "HelpdeskVpcDiscovery"
+          Effect = "Allow"
+          Action = [
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DescribeVpcs",
+            "ec2:DescribeRouteTables",
+            "ec2:DescribeVpcPeeringConnections"
+          ]
+          Resource = "*"
         }
       ],
+      local.helpdesk_vpc_peering_statements,
       var.s3_bucket_arn != "" && var.s3_userdata_bucket_arn != "" ? [
         {
           Sid    = "HelpdeskBuckets"

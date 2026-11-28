@@ -140,7 +140,9 @@ Bedrock LLM provider that first-run setup creates), and the sensitive `secrets` 
 - **Adopted resources are never modified.** With `cluster.mode = "existing"`, the `addons` layer does not
   attach anything to the cluster's node role (the platform output `node_role_managed` is `false`). The Helpdesk
   pods get their AWS access from their own IAM roles for service accounts (`modules/helpdesk`): the backend
-  (bucket access and `sts:AssumeRole` into the cloud provider roles it is given), the agent (Bedrock) and the
+  (bucket access, `sts:AssumeRole` into the cloud provider roles it is given, and helpdesk-VPC discovery plus
+  peering acceptance and return routes limited to the helpdesk VPC, for Network baselines' automatic VPC
+  peering), the agent (Bedrock) and the
   Bedrock subscription job. A separate `<cluster>-helpdesk-llm-bedrock-role` (Bedrock only) trusts just the backend's
   role: the backend assumes it each ticket turn for the Bedrock LLM provider and hands the agent short-lived keys.
 - On a cluster this repo creates, only the service accounts in `cluster.values.node_role_web_identity_subjects`
