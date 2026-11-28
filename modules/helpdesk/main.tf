@@ -113,19 +113,19 @@ locals {
   # object shapes, which a conditional can't unify with an empty tuple.
   helpdesk_vpc_peering_statements = [for s in [
     {
-      Sid       = "HelpdeskVpcAcceptPeering"
-      Effect    = "Allow"
-      Action    = ["ec2:AcceptVpcPeeringConnection", "ec2:DeleteVpcPeeringConnection"]
-      Resource  = ["${local.ec2_arn_prefix}:vpc-peering-connection/*", local.helpdesk_vpc_arn]
+      Sid      = "HelpdeskVpcAcceptPeering"
+      Effect   = "Allow"
+      Action   = ["ec2:AcceptVpcPeeringConnection", "ec2:DeleteVpcPeeringConnection"]
+      Resource = ["${local.ec2_arn_prefix}:vpc-peering-connection/*", local.helpdesk_vpc_arn]
       Condition = {
         ArnEquals = { "ec2:AccepterVpc" = local.helpdesk_vpc_arn }
       }
     },
     {
-      Sid       = "HelpdeskVpcPeeringRoutes"
-      Effect    = "Allow"
-      Action    = ["ec2:CreateRoute", "ec2:DeleteRoute"]
-      Resource  = "${local.ec2_arn_prefix}:route-table/*"
+      Sid      = "HelpdeskVpcPeeringRoutes"
+      Effect   = "Allow"
+      Action   = ["ec2:CreateRoute", "ec2:DeleteRoute"]
+      Resource = "${local.ec2_arn_prefix}:route-table/*"
       Condition = {
         ArnEquals = { "ec2:Vpc" = local.helpdesk_vpc_arn }
       }
